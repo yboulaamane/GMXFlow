@@ -1,30 +1,37 @@
-# GMXPlotter
+# GMXFlow
 
-A lightweight, reproducible workflow for protein-ligand molecular dynamics with GROMACS: scripts to set up and run the simulation, a script to run the standard analyses, and a Google Colab notebook that plots the results.
+**Protein-ligand molecular dynamics with GROMACS, from a PDB file to publication-ready plots.**
 
-![Picture2](https://github.com/user-attachments/assets/7454382d-9afc-47e3-b9bb-8c0b9441e0af)
+GMXFlow chains the three stages of a typical protein-ligand MD study:
 
-| Step | Where | What it does |
+| Stage | Tool | Output |
 |---|---|---|
-| 1. Set up and run | `runner/gromacs-runner.sh` | Protein topology (CHARMM36), ligand parameters (CGenFF), complex assembly, solvation, ions, minimisation, NVT and NPT equilibration, production MD |
-| | `runner/submit_gromacs_gpu.sh` | Example SLURM job for running the production step on a GPU node |
-| 2. Analyse | `runner/gromacs-analyzer.sh` | PBC correction and fitting, RMSD (backbone and ligand), RMSF, radius of gyration, SASA, PCA and the free energy landscape |
-| 3. Plot | `GMXPlotter.ipynb` [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/yboulaamane/GMXPlotter/blob/main/GMXPlotter.ipynb) | Publication-style plots of the analysis output. The folders at the top level hold example data. |
+| **1. Set up and run** | `runner/gromacs-runner.sh` | CHARMM36 protein topology, CGenFF ligand parameters, solvated and neutralised box, minimisation, NVT and NPT equilibration, production trajectory |
+| **2. Analyse** | `runner/gromacs-analyzer.sh` | Backbone and ligand RMSD, RMSF, radius of gyration, SASA, PCA and free energy landscape (`.xvg` files) |
+| **3. Plot** | `GMXPlotter.ipynb` [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/yboulaamane/GMXFlow/blob/main/GMXPlotter.ipynb) | Figures for each analysis, plus hydrogen bonds and MM/PBSA per-residue decomposition if you provide them, exported as one ZIP |
 
-## Running a simulation
+The scripts work for any protein (one chain or several) and any ligand: nothing depends on your system's GROMACS group numbers.
 
-Requirements: GROMACS, Open Babel, Perl and Python 3.
+## Quick start
 
-1. Put the protein-ligand complex PDB in a working folder.
-2. Copy the `.mdp` files and scripts from `runner/`, plus the third-party files below, into the same folder.
-3. Run the setup, naming your ligand's residue:
+Requirements: GROMACS, Open Babel, Perl and Python 3, plus the [third-party files](#third-party-files) below.
 
-   ```bash
-   PROTEIN=complex.pdb LIG=LIG MD_NS=100 bash gromacs-runner.sh
-   ```
+```bash
+# 1. In a folder with your complex PDB, the runner/ files and the third-party files:
+PROTEIN=complex.pdb LIG=LIG MD_NS=100 bash gromacs-runner.sh
+#    It stops once: upload lig_fix.mol2 to the CGenFF server, save the result
+#    as lig_fix.str in the folder, and run the same command again.
 
-   It stops after writing `<lig>_fix.mol2`: upload that file to the CGenFF server, save the result as `<lig>_fix.str` in the folder, and run the same command again.
-4. Run `LIG=LIG bash gromacs-analyzer.sh` on the finished trajectory, then open the notebook to plot the `.xvg` output.
+# 2. When the production run has finished:
+LIG=LIG bash gromacs-analyzer.sh
+
+# 3. Open the notebook in Colab and point it at your .xvg files
+#    (the example data folders show the layout it expects).
+```
+
+`lig` stands for your ligand's residue name in lower case. To run the production step on a GPU cluster, adapt `runner/submit_gromacs_gpu.sh` (an example SLURM job).
+
+## Settings
 
 Both scripts take their settings from environment variables:
 
@@ -43,6 +50,10 @@ Both scripts take their settings from environment variables:
 
 Groups are chosen by name (`Protein`, `Backbone`, `C-alpha`, the ligand, `Protein_<LIG>`, `SOL`), so the scripts work for any protein, one chain or several, and any ligand name. The analysis reads the trajectory's real end time for the final frame. `submit_gromacs_gpu.sh` is an example SLURM job: change its `#SBATCH` lines to your cluster.
 
+## Example data
+
+The folders at the top level (`rmsd/`, `rmsf/`, `pca/`, `fel/`, `mmpbsa/` and so on) hold example output, so you can open the notebook and see every plot before running anything.
+
 ## Third-party files
 
 These are needed but not included in this repository; download them from their authors:
@@ -55,3 +66,4 @@ These are needed but not included in this repository; download them from their a
 | `xpm2txt.py` (optional) | Converts the free energy landscape (`FES.xpm`) to text; the analysis script skips that step without it |
 
 The `.mdp` parameter files are adapted from Justin Lemkul's protein-ligand complex tutorial.
+
