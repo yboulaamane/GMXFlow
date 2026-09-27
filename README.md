@@ -15,12 +15,33 @@ A lightweight, reproducible workflow for protein-ligand molecular dynamics with 
 
 Requirements: GROMACS, Open Babel, Perl and Python 3.
 
-1. Put `protein.pdb` in a working folder, with the ligand as residue `UNK`.
+1. Put the protein-ligand complex PDB in a working folder.
 2. Copy the `.mdp` files and scripts from `runner/`, plus the third-party files below, into the same folder.
-3. Run `bash gromacs-runner.sh`. It stops after writing `unk_fix.mol2`: upload that file to the CGenFF server, save the result as `unk_fix.str` in the folder, and run the script again.
-4. Run `bash gromacs-analyzer.sh` on the finished trajectory, then open the notebook to plot the `.xvg` output.
+3. Run the setup, naming your ligand's residue:
 
-The scripts use fixed GROMACS group numbers (for example `1 | 13` for protein plus ligand, `15` for the solvent) and a 100 ns trajectory. Check them against your own system's index groups before running. The `module load` lines are for one specific HPC cluster; change or remove them.
+   ```bash
+   PROTEIN=complex.pdb LIG=LIG MD_NS=100 bash gromacs-runner.sh
+   ```
+
+   It stops after writing `<lig>_fix.mol2`: upload that file to the CGenFF server, save the result as `<lig>_fix.str` in the folder, and run the same command again.
+4. Run `LIG=LIG bash gromacs-analyzer.sh` on the finished trajectory, then open the notebook to plot the `.xvg` output.
+
+Both scripts take their settings from environment variables:
+
+| Variable | Default | Meaning |
+|---|---|---|
+| `PROTEIN` | `protein.pdb` | Input complex. `ATOM` records are the protein; other `HETATM` records (crystal waters, ions) are left out |
+| `LIG` | `UNK` | Residue name of the ligand in the PDB |
+| `FF` | `charmm36-jul2022` | Force field folder, without `.ff` |
+| `WATER` | `tip3p` | Water model |
+| `BOX`, `DIST` | `cubic`, `1.0` | Box type and solute-to-edge distance (nm) |
+| `CONC` | `0.15` | NaCl concentration (mol/L) on top of neutralisation |
+| `MD_NS` | *(md.mdp)* | Production length in ns; `md.mdp` as shipped runs 10 ns |
+| `DEFFNM` | `md_0_100` | Name of the production run files |
+| `GMX` | `gmx` | GROMACS binary, e.g. `gmx_mpi` |
+| `GMX_MODULE` | *(none)* | Environment module to load on a cluster |
+
+Groups are chosen by name (`Protein`, `Backbone`, `C-alpha`, the ligand, `Protein_<LIG>`, `SOL`), so the scripts work for any protein, one chain or several, and any ligand name. The analysis reads the trajectory's real end time for the final frame. `submit_gromacs_gpu.sh` is an example SLURM job: change its `#SBATCH` lines to your cluster.
 
 ## Third-party files
 
